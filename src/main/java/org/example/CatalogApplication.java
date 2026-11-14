@@ -8,6 +8,8 @@ public class CatalogApplication {
 
     /** Точка входа: запускает Spring-контекст и консольное меню. */
     public static void main(String[] args) {
-        SpringApplication.run(CatalogApplication.class, args);
+        var context = SpringApplication.run(CatalogApplication.class, args);
+        // После выхода из консольного меню закрываем также пул асинхронных задач.
+        context.close();
     }
 }

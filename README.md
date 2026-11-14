@@ -1,4 +1,4 @@
-# Каталог товаров — ЛР №1–3
+# Каталог товаров — ЛР №1–4
 
 Каталог книг и журналов на Java 21 и Spring Boot. Есть консольное меню, TCP-клиент с двумя вариантами сервера и поиск товаров через UDP.
 
@@ -45,3 +45,21 @@ java -jar target/lab1psp-1.0-SNAPSHOT.jar --catalog.mode=udp-client
 ```
 
 В IDEA те же параметры указываются в Program arguments у `CatalogApplication`. UDP-сервер хранит тестовые товары с ID 1, 2, 3 в памяти, не меняет `catalog.json` и слушает порт 8888. Клиент отправляет `GET:ID`, принимает JSON и выводит книгу или журнал. Введите 999 для проверки отсутствующего товара, 0 — для выхода. Ожидание ответа — 3 секунды (`--catalog.udp.timeout-ms=3000`). Для просмотра пакетов в Wireshark: интерфейс loopback, фильтр `udp.port == 8888`.
+
+ЛР №4 — PostgreSQL 17, Hibernate и Spring Data JPA:
+
+```bash
+docker compose up -d
+mvn package
+java -jar target/lab1psp-1.0-SNAPSHOT.jar --spring.profiles.active=db
+```
+
+В IDEA запустите `CatalogApplication` с Program arguments `--spring.profiles.active=db`, убрав аргументы сетевых режимов. База, пользователь и пароль — `postgres`, адрес — `localhost:5432`. Compose не содержит настроек volumes. Подключение можно изменить переменными `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
+
+`Item`, `Book`, `Journal` — JPA entity. Наследование `SINGLE_TABLE`: все товары хранятся в таблице `products`, столбец `type` определяет книгу или журнал. `JpaItemRepository` наследует `JpaRepository<Item, Long>`. Доступны добавление, просмотр, поиск по ID, редактирование и удаление.
+
+Меню вызывает `AsyncJpaCatalogService`: методы с `@Async` возвращают `CompletableFuture` и выполняются в пуле `catalog-db-`. Внутри рабочего потока `JpaCatalogService` проверяет данные и выполняет транзакцию через репозиторий. Future завершается после commit или с ошибкой. Сам Hibernate/JDBC остается блокирующим; консольное меню ожидает результат через `join()`. Размер пула по умолчанию — 4 потока (`catalog.async.pool-size`).
+
+Таблицу создает Liquibase при первом запуске профиля `db`. Changelog: `src/main/resources/db/changelog/db.changelog-master.xml`, SQL: `src/main/resources/db/changelog/sql/001-create-products.sql`. Hibernate использует `ddl-auto=validate`. В режиме БД файл JSON не используется, каждая операция сохраняется сразу. Без профиля `db` предыдущие лабораторные по-прежнему работают без PostgreSQL.
+
+`JpaCatalogServiceTest` проверяет миграцию и CRUD, `AsyncJpaCatalogServiceTest` — выполнение в рабочем потоке, commit и передачу ошибок через future. Тесты используют временные H2-базы в режиме совместимости с PostgreSQL; Docker для обычного `mvn test` не требуется.
