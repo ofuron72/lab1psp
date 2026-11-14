@@ -1,6 +1,6 @@
-# Каталог товаров — ЛР №1 и №2
+# Каталог товаров — ЛР №1–3
 
-Каталог книг и журналов на Java 21 и Spring Boot. Есть обычное консольное меню и TCP-клиент с двумя вариантами сервера.
+Каталог книг и журналов на Java 21 и Spring Boot. Есть консольное меню, TCP-клиент с двумя вариантами сервера и поиск товаров через UDP.
 
 Для запуска нужны JDK 21 и Maven:
 
@@ -35,4 +35,13 @@ java -jar target/lab1psp-1.0-SNAPSHOT.jar --catalog.mode=client
 
 В IntelliJ IDEA запустите `CatalogApplication`, указав нужный `--catalog.mode=...` в Program arguments. Для нескольких клиентов включите Allow multiple instances в конфигурации запуска.
 
-Проверки: `mvn test`. Сетевой обмен — JSON в UTF-8, одна команда и один ответ на строку. Команды: `LIST`, `ADD_BOOK`, `ADD_JOURNAL`, `DELETE`, `SAVE`, `QUIT`.
+Проверки: `mvn test`. Обмен по TCP — JSON в UTF-8, одна команда и один ответ на строку. Команды: `LIST`, `ADD_BOOK`, `ADD_JOURNAL`, `DELETE`, `SAVE`, `QUIT`.
+
+ЛР №3 — поиск по ID через UDP. Запустите сервер и клиент отдельно:
+
+```bash
+java -jar target/lab1psp-1.0-SNAPSHOT.jar --catalog.mode=udp-server
+java -jar target/lab1psp-1.0-SNAPSHOT.jar --catalog.mode=udp-client
+```
+
+В IDEA те же параметры указываются в Program arguments у `CatalogApplication`. UDP-сервер хранит тестовые товары с ID 1, 2, 3 в памяти, не меняет `catalog.json` и слушает порт 8888. Клиент отправляет `GET:ID`, принимает JSON и выводит книгу или журнал. Введите 999 для проверки отсутствующего товара, 0 — для выхода. Ожидание ответа — 3 секунды (`--catalog.udp.timeout-ms=3000`). Для просмотра пакетов в Wireshark: интерфейс loopback, фильтр `udp.port == 8888`.
