@@ -1,0 +1,36 @@
+[ {
+  "type" : "book",
+  "id" : 2,
+  "name" : "Мастер и Маргарита",
+  "price" : 549.00,
+  "author" : "Михаил Булгаков",
+  "pageCount" : 480
+}, {
+  "type" : "book",
+  "id" : 3,
+  "name" : "Clean Code",
+  "price" : 1250.50,
+  "author" : "Robert C. Martin",
+  "pageCount" : 464
+}, {
+  "type" : "journal",
+  "id" : 4,
+  "name" : "Наука и жизнь",
+  "price" : 320.00,
+  "publisher" : "АНО Наука и жизнь",
+  "issueNumber" : 9
+}, {
+  "type" : "journal",
+  "id" : 5,
+  "name" : "National Geographic",
+  "price" : 450.00,
+  "publisher" : "National Geographic Society",
+  "issueNumber" : 112
+}, {
+  "type" : "book",
+  "id" : 6,
+  "name" : "testName",
+  "price" : 120,
+  "author" : "testAuthor",
+  "pageCount" : 100
+} ]
