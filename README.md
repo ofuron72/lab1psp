@@ -1,65 +1,33 @@
-# Каталог товаров — ЛР №1–4
+# Каталог товаров — ЛР №1–5
 
-Каталог книг и журналов на Java 21 и Spring Boot. Есть консольное меню, TCP-клиент с двумя вариантами сервера и поиск товаров через UDP.
-
-Для запуска нужны JDK 21 и Maven:
+Java 21, Spring Boot. Сборка из корня проекта:
 
 ```bash
 mvn package
 ```
 
-Запуск обычного меню (ЛР №1):
+В IDEA после изменения проекта нажмите **Reload All Maven Projects**. Сборка состоит из `catalog-contract` (Protobuf и заглушки) и `catalog-app` (приложение). Исходники приложения остались в корневой папке `src`. Перед первым запуском выполните сборку для генерации классов.
 
-```bash
-java -jar target/lab1psp-1.0-SNAPSHOT.jar
-```
+Запускайте `CatalogApplication` с нужными **Program arguments**:
 
-Для ЛР №2 запустите один из серверов:
+| Режим | Аргументы |
+|---|---|
+| ЛР №1, локальный JSON | без аргументов |
+| ЛР №2, последовательный TCP-сервер | `--catalog.mode=server-single` |
+| ЛР №2, многопоточный TCP-сервер | `--catalog.mode=server-multi` |
+| TCP-клиент | `--catalog.mode=client` |
+| ЛР №3, UDP-сервер | `--catalog.mode=udp-server` |
+| UDP-клиент | `--catalog.mode=udp-client` |
+| ЛР №4, меню PostgreSQL | `--spring.profiles.active=db` |
+| ЛР №5, gRPC-сервер | `--spring.profiles.active=db --catalog.mode=grpc-server` |
+| gRPC-клиент | `--catalog.mode=grpc-client` |
 
-```bash
-java -jar target/lab1psp-1.0-SNAPSHOT.jar --catalog.mode=server-single
-java -jar target/lab1psp-1.0-SNAPSHOT.jar --catalog.mode=server-multi
-```
+Сервер и клиент запускаются отдельно. Для нескольких экземпляров в IDEA включите **Allow multiple instances**, рабочая папка — корень проекта. Из терминала используйте `java -jar target/lab1psp-1.0-SNAPSHOT.jar` с теми же аргументами.
 
-Затем в двух отдельных терминалах запустите клиентов:
+Для ЛР №4–5 сначала выполните `docker compose up -d`. PostgreSQL 17: `localhost:5432`, база, пользователь и пароль — `postgres`. Compose без настроек volumes. Параметры подключения: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`. Liquibase создает `products` при запуске сервера/меню с профилем `db`, Hibernate проверяет схему. SQL лежит в `src/main/resources/db/changelog/sql`. `JpaCatalogService` синхронно работает с `JpaItemRepository`, изменения сохраняются после каждой операции. JSON-файл в этих режимах не используется.
 
-```bash
-java -jar target/lab1psp-1.0-SNAPSHOT.jar --catalog.mode=client
-```
+gRPC-клиенту профиль `db` не нужен. Контракт: `catalog-contract/src/main/proto/catalog.proto`. Методы: `Add`, `GetById`, `GetAll` (server-side stream), `Update`, `Delete`. Обмен — бинарный Protobuf по HTTP/2; клиент использует blocking stub. Сервер обращается к PostgreSQL из ЛР №4. Неизвестный ID возвращает `NOT_FOUND`. По умолчанию порт 9090, адрес клиента — localhost; настройки: `catalog.grpc.port`, `catalog.grpc.client-host`, `catalog.grpc.server-host`. Выход клиента — пункт 0, остановка сервера — Ctrl+C.
 
-В `server-single` второй клиент ждет ответа, пока первый не отключится. В `server-multi` оба работают одновременно: каждое подключение обрабатывается отдельным виртуальным потоком Java 21. Сервер останавливается через Ctrl+C; пункт «Сохранить и выйти» отключает только клиента.
+TCP и UDP используют порт 8888. UDP-сервер содержит тестовые товары 1, 2, 3; неизвестный ID — 999, выход — 0. Он не меняет JSON и БД. В последовательном TCP второй клиент ждет отключения первого; в многопоточном клиенты работают одновременно. TCP-клиент выходит через пункт 5.
 
-По умолчанию сервер слушает `0.0.0.0:8888`, клиент подключается к `localhost:8888`. Другой адрес клиента: `--catalog.client.host=192.168.1.10`, другой порт: `--catalog.port=8889` (укажите у сервера и клиентов).
-
-Каталог общий для всех клиентов. `catalog.json` читает и сохраняет сервер: при выходе или отключении клиента и при штатной остановке сервера. Путь можно изменить через `--catalog.file-path=other.json`. Одновременно запускайте только один сервер с одним файлом каталога.
-
-В IntelliJ IDEA запустите `CatalogApplication`, указав нужный `--catalog.mode=...` в Program arguments. Для нескольких клиентов включите Allow multiple instances в конфигурации запуска.
-
-Проверки: `mvn test`. Обмен по TCP — JSON в UTF-8, одна команда и один ответ на строку. Команды: `LIST`, `ADD_BOOK`, `ADD_JOURNAL`, `DELETE`, `SAVE`, `QUIT`.
-
-ЛР №3 — поиск по ID через UDP. Запустите сервер и клиент отдельно:
-
-```bash
-java -jar target/lab1psp-1.0-SNAPSHOT.jar --catalog.mode=udp-server
-java -jar target/lab1psp-1.0-SNAPSHOT.jar --catalog.mode=udp-client
-```
-
-В IDEA те же параметры указываются в Program arguments у `CatalogApplication`. UDP-сервер хранит тестовые товары с ID 1, 2, 3 в памяти, не меняет `catalog.json` и слушает порт 8888. Клиент отправляет `GET:ID`, принимает JSON и выводит книгу или журнал. Введите 999 для проверки отсутствующего товара, 0 — для выхода. Ожидание ответа — 3 секунды (`--catalog.udp.timeout-ms=3000`). Для просмотра пакетов в Wireshark: интерфейс loopback, фильтр `udp.port == 8888`.
-
-ЛР №4 — PostgreSQL 17, Hibernate и Spring Data JPA:
-
-```bash
-docker compose up -d
-mvn package
-java -jar target/lab1psp-1.0-SNAPSHOT.jar --spring.profiles.active=db
-```
-
-В IDEA запустите `CatalogApplication` с Program arguments `--spring.profiles.active=db`, убрав аргументы сетевых режимов. База, пользователь и пароль — `postgres`, адрес — `localhost:5432`. Compose не содержит настроек volumes. Подключение можно изменить переменными `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
-
-`Item`, `Book`, `Journal` — JPA entity. Наследование `SINGLE_TABLE`: все товары хранятся в таблице `products`, столбец `type` определяет книгу или журнал. `JpaItemRepository` наследует `JpaRepository<Item, Long>`. Доступны добавление, просмотр, поиск по ID, редактирование и удаление.
-
-Меню вызывает `AsyncJpaCatalogService`: методы с `@Async` возвращают `CompletableFuture` и выполняются в пуле `catalog-db-`. Внутри рабочего потока `JpaCatalogService` проверяет данные и выполняет транзакцию через репозиторий. Future завершается после commit или с ошибкой. Сам Hibernate/JDBC остается блокирующим; консольное меню ожидает результат через `join()`. Размер пула по умолчанию — 4 потока (`catalog.async.pool-size`).
-
-Таблицу создает Liquibase при первом запуске профиля `db`. Changelog: `src/main/resources/db/changelog/db.changelog-master.xml`, SQL: `src/main/resources/db/changelog/sql/001-create-products.sql`. Hibernate использует `ddl-auto=validate`. В режиме БД файл JSON не используется, каждая операция сохраняется сразу. Без профиля `db` предыдущие лабораторные по-прежнему работают без PostgreSQL.
-
-`JpaCatalogServiceTest` проверяет миграцию и CRUD, `AsyncJpaCatalogServiceTest` — выполнение в рабочем потоке, commit и передачу ошибок через future. Тесты используют временные H2-базы в режиме совместимости с PostgreSQL; Docker для обычного `mvn test` не требуется.
+Тесты: `mvn test` из корня. Проверки JPA и gRPC используют временную H2-базу, Docker не требуется. Для ЛР №5 запустите `GrpcCatalogServiceTest` — шесть тестов с русскими названиями.
