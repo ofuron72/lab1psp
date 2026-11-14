@@ -11,6 +11,7 @@ import org.example.service.CatalogFileService;
 import org.example.service.CatalogService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import java.io.FileNotFoundException;
 import java.util.List;
@@ -20,6 +21,7 @@ import java.util.List;
  * При добавлении web этот класс можно отключить (например, через @Profile("console")).
  */
 @Component
+@ConditionalOnProperty(name = "catalog.mode", havingValue = "console", matchIfMissing = true)
 @RequiredArgsConstructor
 public class ConsoleMenu implements CommandLineRunner {
 

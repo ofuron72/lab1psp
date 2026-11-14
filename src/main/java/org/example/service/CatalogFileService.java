@@ -43,7 +43,7 @@ public class CatalogFileService {
      * @throws FileNotFoundException         если файла нет
      * @throws CatalogFileCorruptedException если файл не удалось разобрать
      */
-    public List<Item> load() throws FileNotFoundException {
+    public synchronized List<Item> load() throws FileNotFoundException {
         try (InputStream in = new FileInputStream(file)) {
             List<Item> items = objectMapper.readValue(in, ITEM_LIST);
             return items != null ? items : new ArrayList<>();
@@ -58,10 +58,12 @@ public class CatalogFileService {
 
     /**
      * Сохраняет товары в файл в читаемом виде (с отступами).
+     * Чтение и запись используют одну блокировку, чтобы читатель не увидел
+     * пустой или частично записанный файл во время сохранения другим потоком.
      *
      * @throws CatalogFileWriteException при ошибке записи (IOException)
      */
-    public void save(Collection<? extends Item> items) {
+    public synchronized void save(Collection<? extends Item> items) {
         try (OutputStream out = new FileOutputStream(file)) {
             objectMapper.writerFor(ITEM_LIST)
                     .withDefaultPrettyPrinter()
